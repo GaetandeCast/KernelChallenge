@@ -1,34 +1,30 @@
 import numpy as np
-import itertools
-import pandas as pd
-
 
 class KernelLogisticRegression:
     def __init__(self, n_iter=100, tol=1e-6, reg=0.01):
         """
-        Initializes the Kernel Logistic Regression model for DNA sequence classification.
-
+        Initializes the Kernel Logistic Regression model.
+        
         Parameters:
-        - n_iter: int, maximum number of Newton-Raphson iterations.
-        - tol: float, tolerance for convergence (based on the norm of the Newton update).
-        - reg: float, L2 regularization strength.
+            n_iter (int): Maximum number of iterations for optimization.
+            tol (float): Tolerance for convergence.
+            reg (float): Regularization strength.
         """
         self.n_iter = n_iter
         self.tol = tol
         self.reg = reg
         
-        self.alpha = None       # Dual coefficients
-        self.feature_vectors = None  # List of feature vectors for training sequences
-        self.train_seqs = None       # Training sequences (raw)
-        
+        self.alpha = None 
+        self.feature_vectors = None
+        self.train_seqs = None  
 
-    def fit(self, K, y):
+    def fit(self, K, vectors, y):
         """
-        Fits the Kernel Logistic Regression model using the Newton-Raphson method.
+        Fits the Kernel Logistic Regression model using Newton-Raphson optimization.
         
         Parameters:
-        - sequences: list or array of DNA sequences (strings) for training.
-        - y: numpy array of shape (n_samples,), binary labels (0 or 1).
+            K (ndarray): Precomputed kernel matrix.
+            y (list or ndarray): Target labels (0 or 1).
         """
         n_samples = len(y)
         y = np.array(y).flatten()
@@ -38,15 +34,15 @@ class KernelLogisticRegression:
         
         # Newton-Raphson iterations
         for iteration in range(self.n_iter):
-            # Decision function f = K * alpha
+            # Compute decision function f = K * alpha
             f = np.dot(K, self.alpha)
-            # Sigmoid function to get probabilities
+            # Compute probabilities using the sigmoid function
             p = 1 / (1 + np.exp(-f))
-            # Gradient of the loss (with regularization)
+            # Compute gradient of the loss function with regularization
             gradient = np.dot(K.T, (p - y)) + self.reg * self.alpha
-            # Diagonal weight matrix W: p*(1-p)
+            # Compute diagonal weight matrix W with elements p * (1 - p)
             W = np.diag(p * (1 - p))
-            # Hessian: K^T * W * K + reg * I
+            # Compute Hessian matrix: K^T * W * K + reg * I
             Hessian = np.dot(K.T, np.dot(W, K)) + self.reg * np.eye(n_samples)
             
             # Solve for Newton update: Hessian * delta = gradient
@@ -65,28 +61,27 @@ class KernelLogisticRegression:
 
     def predict_proba(self, K_test):
         """
-        Predicts probabilities for the positive class for new sequences.
+        Computes predicted probabilities for test data.
         
         Parameters:
+            K_test (ndarray): Test kernel matrix.
         
         Returns:
-        - p: numpy array of predicted probabilities.
+            out (ndarray): Predicted probabilities.
         """
-        # Decision function
         f = np.dot(K_test, self.alpha)
         p = 1 / (1 + np.exp(-f))
         return p
 
     def predict(self, K_test):
         """
-        Predicts binary labels (0 or 1) for new sequences.
+        Predicts class labels for test data.
         
         Parameters:
-        - sequences: list or array of DNA sequences (strings).
+            K_test (ndarray): Test kernel matrix.
         
         Returns:
-        - predictions: numpy array of predicted binary labels.
+            out (ndarray): Predicted labels (0 or 1).
         """
         proba = self.predict_proba(K_test)
         return (proba >= 0.5).astype(int)
-
